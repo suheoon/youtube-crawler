@@ -17,7 +17,7 @@ while True:
         tj_dic[number] = keyword
 f.close()
 
-url_number_list = []
+url_number = set()
 
 f = open("youtube_Url.txt", "rt")
 while True:
@@ -27,13 +27,13 @@ while True:
     s = line.split(sep='^')
     if s:
         number = s[0]
-        url_number_list.append(number)
+        url_number.add(number)
 f.close()
 
 keyword = []
 
 for number, title in tj_dic.items():
-    if number not in url_number_list:
+    if number not in url_number:
         keyword.append(number+"^"+title)
 
 f = open("url_keyword.txt", 'w')
