@@ -2,6 +2,7 @@ import json
 import time
 import string
 import requests, zipfile, io
+import boto3
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
@@ -15,6 +16,14 @@ def get_file():
     # 기존 youtube_Url 다운로드
     file = requests.get('https://d2roillo3z37rm.cloudfront.net/youtube_Url.txt')
     open('/tmp/youtube_Url.txt', 'wb').write(file.content)
+    
+def upload_to_s3():
+    file_name = '/tmp/youtube_Url.txt'
+    bucket = 'conopot-youtube'
+    key = 'youtube_Url.txt'
+    
+    s3 = boto3.client("s3")
+    res = s3.upload_file(file_name, bucket, key)
 
 def get_driver():
     # chrome driver option 설정
@@ -72,7 +81,7 @@ def lambda_handler(event, context):
         if number not in url_number:
             new_info.append(number+"^"+title)
     
-    # f = open("/tmp/youtube_Url.txt", "a")
+    f = open("/tmp/youtube_Url.txt", "a")
     
     for info in new_info:
         search = info.split(sep='^')
@@ -106,12 +115,18 @@ def lambda_handler(event, context):
         content_total_link = list(map(lambda data: "https://youtube.com" + data["href"], content_total))
         if content_total_link:
             url = str(content_total_link[0]).replace('https://youtube.com/watch?v=','')
-            print("테스트",url)
-            # f.write(number + '^' + url + '^' + '\n')
+            print(url)
+            f.write(number + '^' + url + '^' + '\n')
+            
+    f.close()
+    
+    if new_info:
+        upload_to_s3()
+    
     
     response = {
         "statusCode": 200,
-        "body": json.dumps("업데이트 성공")
+        "body": json.dumps("success")
     }
 
     return response
