@@ -3,6 +3,9 @@ r = requests.get('https://d26jfubr2fa7sp.cloudfront.net/Musics.zip')
 z = zipfile.ZipFile(io.BytesIO(r.content))
 z.extractall("./")
 
+file = requests.get('https://d2roillo3z37rm.cloudfront.net/youtube_Url.txt')
+open('youtube_Url.txt', 'wb').write(file.content)
+
 tj_dic = {}
 
 f = open("musicbook_TJ.txt", "rt")

@@ -6,6 +6,15 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 
+def get_file():
+    # 최신 노래방 곡 정보 다운로드
+    r = requests.get('https://d26jfubr2fa7sp.cloudfront.net/Musics.zip')
+    zip = zipfile.ZipFile(io.BytesIO(r.content))
+    zip.extractall("/tmp")
+    
+    # 기존 youtube_Url 다운로드
+    file = requests.get('https://d2roillo3z37rm.cloudfront.net/youtube_Url.txt')
+    open('/tmp/youtube_Url.txt', 'wb').write(file.content)
 
 def get_driver():
     # chrome driver option 설정
@@ -28,13 +37,8 @@ def get_driver():
         return e
 
 def lambda_handler(event, context):
-    # 최신 노래방 곡 정보 다운로드
-    r = requests.get('https://d26jfubr2fa7sp.cloudfront.net/Musics.zip')
-    z = zipfile.ZipFile(io.BytesIO(r.content))
-    z.extractall("/tmp")
-    
-    # 기존 youtube_Url 다운로드
-    
+    # 파일 다운로드
+    get_file()
     # TJ 노래방 곡 정보 파싱
     tj_dic = {}
     f = open("/tmp/musicbook_TJ.txt", "rt")
@@ -50,7 +54,7 @@ def lambda_handler(event, context):
     f.close()
     
     # URL 정보 파싱
-    url_number_list = []
+    url_number = set()
     f = open("/tmp/youtube_Url.txt", "rt")
     while True:
         line = f.readline()
@@ -59,16 +63,16 @@ def lambda_handler(event, context):
         s = line.split(sep='^')
         if s:
             number = s[0]
-            url_number_list.append(number)
+            url_number.add(number)
     f.close()
     
     # URL에 반영되지 않은 최신 노래 정보 저장
     new_info = []
     for number, title in tj_dic.items():
-        if number not in url_number_list:
+        if number not in url_number:
             new_info.append(number+"^"+title)
     
-    # f = open("/tmp/youtube_Url.txt", "rt")
+    # f = open("/tmp/youtube_Url.txt", "a")
     
     for info in new_info:
         search = info.split(sep='^')
@@ -89,21 +93,21 @@ def lambda_handler(event, context):
         URL = "https://www.youtube.com/results?search_query=" + SEARCH_KEYWORD
         # # 크롬 드라이버를 통해 지정한 URL의 웹 페이지 오픈
         driver.get(URL)
-        time.sleep(3)
+        time.sleep(1)
         # # 페이지 소스 추출
         html_source = driver.page_source
         soup_source = BeautifulSoup(html_source, 'html.parser')
         
-        # driver.close()
         driver.quit()
         
         # # 모든 콘텐츠 정보
         content_total = soup_source.find_all(class_ = 'yt-simple-endpoint style-scope ytd-video-renderer')
         # # 콘텐츠 링크만 추출
         content_total_link = list(map(lambda data: "https://youtube.com" + data["href"], content_total))
-        url = str(content_total_link[0]).replace('https://youtube.com/watch?v=','')
-        print("테스트",url)
-        # f.write(number + '^' + url + '^' + '\n')
+        if content_total_link:
+            url = str(content_total_link[0]).replace('https://youtube.com/watch?v=','')
+            print("테스트",url)
+            # f.write(number + '^' + url + '^' + '\n')
     
     response = {
         "statusCode": 200,
