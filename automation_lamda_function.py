@@ -122,11 +122,3 @@ def lambda_handler(event, context):
     
     if new_info:
         upload_to_s3()
-    
-    
-    response = {
-        "statusCode": 200,
-        "body": json.dumps("success")
-    }
-
-    return response
